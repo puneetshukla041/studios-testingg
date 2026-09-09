@@ -4,6 +4,8 @@ export interface IConferenceBooking extends Document {
   slotDate: string;
   slotTime: string;
   sequentialId: string;
+  conferenceName: string;
+  designation: string;
   title: string;
   fullName: string;
   specialty: string;
@@ -22,6 +24,8 @@ const ConferenceBookingSchema: Schema<IConferenceBooking> = new Schema(
     slotDate: { type: String, required: true },
     slotTime: { type: String, required: true },
     sequentialId: { type: String, required: true, unique: true },
+    conferenceName: { type: String, required: true },
+    designation: { type: String, required: true },
     title: { type: String, required: true, default: 'Dr.' },
     fullName: { type: String, required: true },
     specialty: { type: String, required: true },
@@ -36,6 +40,7 @@ const ConferenceBookingSchema: Schema<IConferenceBooking> = new Schema(
   { timestamps: true }
 );
 
+// Prevent duplicate bookings for the exact same date and time
 ConferenceBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: true });
 
 export const ConferenceBooking: Model<IConferenceBooking> =

@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Replace with "mysql" or "sqlite" if applicable
+  url      = env("DATABASE_URL")
+}
+
+model ConferenceBooking {
+  id             String   @id @default(cuid())
+  sequentialId   Int      @default(autoincrement())
+  slotDate       String
+  slotTime       String
+  conferenceName String
+  designation    String
+  title          String
+  fullName       String
+  specialty      String
+  countryCode    String
+  mobileNumber   String
+  email          String
+  hospitalName   String
+  country        String
+  state          String
+  city           String
+  createdAt      DateTime @default(now())
+}

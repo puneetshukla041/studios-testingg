@@ -15,6 +15,8 @@ export default function ConferenceSlotPage() {
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   const [formData, setFormData] = useState({
+    conferenceName: 'Oncology For Post Graduates',
+    designation: 'Delegate',
     title: 'Dr.',
     fullName: '',
     specialty: 'Surgery',
@@ -224,6 +226,38 @@ export default function ConferenceSlotPage() {
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl">{errorMsg}</div>}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Conference Name Selection */}
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    CONFERENCE NAME
+                  </label>
+                  <select
+                    value={formData.conferenceName}
+                    onChange={(e) => setFormData({ ...formData, conferenceName: e.target.value })}
+                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  >
+                    <option value="Oncology For Post Graduates">Oncology For Post Graduates</option>
+                    <option value="Minister for Health, Medical & Family Welfare Government of Telangana Hyderabad">
+                      Minister for Health, Medical & Family Welfare Government of Telangana Hyderabad
+                    </option>
+                  </select>
+                </div>
+
+                {/* Designation Selection */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    DESIGNATION *
+                  </label>
+                  <select
+                    value={formData.designation}
+                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  >
+                    <option value="Delegate">Delegate</option>
+                    <option value="Faculty">Faculty</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     FULL NAME & TITLE *
@@ -403,6 +437,12 @@ export default function ConferenceSlotPage() {
                 </div>
 
                 <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">CONFERENCE & DESIGNATION</span>
+                  <p className="text-sm font-bold text-slate-900">{confirmedBooking.conferenceName}</p>
+                  <p className="text-xs font-semibold text-purple-600 mt-0.5">{confirmedBooking.designation}</p>
+                </div>
+
+                <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">PRACTITIONER DETAILS</span>
                   <p className="text-sm font-bold text-slate-900">
                     {confirmedBooking.title} {confirmedBooking.fullName}{' '}
@@ -421,7 +461,7 @@ export default function ConferenceSlotPage() {
                 <div className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl">
                   <span className="text-[10px] font-bold text-emerald-700 uppercase block mb-0.5">VENUE LOCATION</span>
                   <p className="text-xs font-medium text-emerald-900">
-                    , {confirmedBooking.city}, {confirmedBooking.state}, {confirmedBooking.country}
+                    {confirmedBooking.city}, {confirmedBooking.state}, {confirmedBooking.country}
                   </p>
                 </div>
               </div>
