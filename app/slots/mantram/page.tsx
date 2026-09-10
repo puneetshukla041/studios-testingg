@@ -34,7 +34,7 @@ export default function MantramSlotPage() {
   useEffect(() => {
     setTimeSlots(
       generateTimeSlots({
-        slotDuration: 30,
+        slotDuration: 5,
         gap: 2,
         morningStart: 9 * 60,
         morningEnd: 13 * 60,
@@ -70,7 +70,7 @@ export default function MantramSlotPage() {
       setSelectedSlot(slot);
       setStep('FILL_DETAILS');
       setIsTransitioning(false);
-    }, 8000);
+    }, 500);
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -97,7 +97,7 @@ export default function MantramSlotPage() {
       setTimeout(() => {
         setStep('TICKET');
         setIsTransitioning(false);
-      }, 8000);
+      }, 500);
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {

@@ -36,7 +36,8 @@ const MantramBookingSchema: Schema<IMantramBooking> = new Schema(
   { timestamps: true }
 );
 
-MantramBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: true });
+// Allow multiple bookings per same slot (capacity is enforced in the API)
+MantramBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: false, background: true });
 
 export const MantramBooking: Model<IMantramBooking> =
   mongoose.models.MantramBooking || mongoose.model<IMantramBooking>('MantramBooking', MantramBookingSchema);
