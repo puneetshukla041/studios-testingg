@@ -34,7 +34,7 @@ export default function MantramSlotPage() {
   useEffect(() => {
     setTimeSlots(
       generateTimeSlots({
-        slotDuration: 5,
+        slotDuration: 30,
         gap: 2,
         morningStart: 9 * 60,
         morningEnd: 13 * 60,
