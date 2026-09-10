@@ -85,8 +85,6 @@ export default function ConferenceSlotPage() {
   };
 
   const handleBookSlot = async (slot: string) => {
-    if (occupiedSlots.includes(slot)) return;
-
     setSelectedSlot(slot);
     setLoading(true);
     setErrorMsg('');

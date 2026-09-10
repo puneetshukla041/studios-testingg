@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MantramBooking } from '@/models/MantramBooking';
 
-const MAX_SLOT_CAPACITY = 6;
+const MAX_SLOT_CAPACITY = 1;
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,32 +15,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    // Remove legacy unique index on slotDate+slotTime if it exists (fixes E11000)
-    try {
-      const globalAny: any = global as any;
-      if (!globalAny._mantramBookingIndexFixed) {
-        const indexes = await MantramBooking.collection.indexes();
-        for (const idx of indexes) {
-          if (
-            idx &&
-            idx.key &&
-            idx.key.slotDate === 1 &&
-            idx.key.slotTime === 1 &&
-            idx.unique
-          ) {
-            if (idx.name) {
-              await MantramBooking.collection.dropIndex(idx.name).catch(() => null);
-              console.info('Dropped legacy unique index on Mantram slotDate+slotTime:', idx.name);
-            }
-          }
-        }
-        globalAny._mantramBookingIndexFixed = true;
-      }
-    } catch (idxErr) {
-      console.warn('Mantram index cleanup warning:', idxErr);
-    }
-
-    // Enforce capacity per slot instead of single-booking behavior
+    // Enforce capacity per slot (1 person per slot)
     const existingCount = await MantramBooking.countDocuments({ slotDate, slotTime });
     if (existingCount >= MAX_SLOT_CAPACITY) {
       return NextResponse.json({ error: `Selected time slot is fully booked (${MAX_SLOT_CAPACITY}/${MAX_SLOT_CAPACITY}).` }, { status: 400 });

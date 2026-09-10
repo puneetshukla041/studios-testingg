@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { ConferenceBooking } from '@/models/ConferenceBooking';
 
-const MAX_SLOT_CAPACITY = 6;
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date');
-    const conferenceName = searchParams.get('conferenceName');
 
     if (!date) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 });
@@ -16,14 +13,8 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
 
-    const matchQuery: Record<string, any> = { slotDate: date };
-    if (conferenceName) {
-      matchQuery.conferenceName = conferenceName;
-    }
-
-    // Group bookings by slotTime and count total reservations per slot for this date & conference
     const slotCountsRaw = await ConferenceBooking.aggregate([
-      { $match: matchQuery },
+      { $match: { slotDate: date } },
       { $group: { _id: '$slotTime', count: { $sum: 1 } } },
     ]);
 
@@ -32,9 +23,6 @@ export async function GET(req: NextRequest) {
 
     slotCountsRaw.forEach((item) => {
       slotCounts[item._id] = item.count;
-      if (item.count >= MAX_SLOT_CAPACITY) {
-        occupiedSlots.push(item._id); // Mark fully booked if 6 seats filled
-      }
     });
 
     return NextResponse.json({ occupiedSlots, slotCounts }, { status: 200 });

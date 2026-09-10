@@ -37,7 +37,8 @@ const MantramBookingSchema: Schema<IMantramBooking> = new Schema(
 );
 
 // Enforce a strict unique index on date + time so only 1 booking can ever exist per slot
-MantramBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: true, background: true });
+// Enforce single booking per slot at the database level for Mantram sessions
+MantramBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: true });
 
 export const MantramBooking: Model<IMantramBooking> =
   mongoose.models.MantramBooking || mongoose.model<IMantramBooking>('MantramBooking', MantramBookingSchema);
