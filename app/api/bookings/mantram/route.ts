@@ -227,10 +227,16 @@ export async function POST(request: NextRequest) {
     console.error('Mantram booking error:', error);
 
     if (isDuplicateKeyError(error)) {
+      try {
+        await removeLegacyUniqueSlotIndex();
+      } catch (cleanupErr) {
+        console.error('Index cleanup failed:', cleanupErr);
+      }
+
       return NextResponse.json(
         {
           error:
-            'A database index conflict occurred. Restart the server and try again.',
+            'A database index conflict occurred. The server attempted to repair indexes; please retry the request.',
         },
         { status: 409 }
       );
