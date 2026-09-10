@@ -10,6 +10,7 @@ export default function ConferenceSlotPage() {
   const [selectedDate, setSelectedDate] = useState<string>('2026-09-09');
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+  const [slotCounts, setSlotCounts] = useState<Record<string, number>>({});
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -44,6 +45,7 @@ export default function ConferenceSlotPage() {
       const data = await res.json();
       if (res.ok) {
         setOccupiedSlots(data.occupiedSlots || []);
+        setSlotCounts(data.slotCounts || {});
       }
     } catch (err) {
       console.error(err);
@@ -119,7 +121,7 @@ export default function ConferenceSlotPage() {
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
               SSI Conference Portal
             </h1>
-            <p className="text-xs text-slate-500 font-medium">Advanced Clinical Session Scheduling</p>
+            <p className="text-xs text-slate-500 font-medium">30-Min Sessions (Max 6 Participants / Slot)</p>
           </div>
         </div>
       </header>
@@ -130,9 +132,9 @@ export default function ConferenceSlotPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Select Session Slot</h2>
-                <span className="inline-block mt-1 text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                  UNDER TESTING
-                </span>
+                <p className="text-xs text-slate-500 mt-1">
+                  Each slot is 30 mins with 2 min breaks • Lunch Break: 01:00 PM - 02:00 PM
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-6">
                 <div className="flex items-center space-x-4 text-xs font-semibold">
@@ -141,8 +143,8 @@ export default function ConferenceSlotPage() {
                     <span className="text-slate-600">Available</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <span className="w-3 h-3 rounded-full bg-slate-300"></span>
-                    <span className="text-slate-600">Occupied</span>
+                    <span className="w-3 h-3 rounded-full bg-red-400"></span>
+                    <span className="text-slate-600">Full (6/6)</span>
                   </div>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex flex-col justify-center">
@@ -162,30 +164,34 @@ export default function ConferenceSlotPage() {
             {loading ? (
               <div className="py-20 text-center text-slate-400">Loading slots...</div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {timeSlots.map((slot) => {
-                  const isOccupied = occupiedSlots.includes(slot);
+                  const bookedCount = slotCounts[slot] || 0;
+                  const isFull = bookedCount >= 6;
                   return (
                     <button
                       key={slot}
-                      disabled={isOccupied}
+                      disabled={isFull}
                       onClick={() => handleSelectSlot(slot)}
-                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-between h-24 ${
-                        isOccupied
-                          ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                      className={`p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-between min-h-[100px] ${
+                        isFull
+                          ? 'bg-red-50/50 border-red-200 text-slate-400 cursor-not-allowed'
                           : 'bg-white border-slate-200 hover:border-blue-500 hover:shadow-md cursor-pointer'
                       }`}
                     >
                       <span className="text-xs font-bold text-slate-800 leading-tight">{slot}</span>
-                      <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
-                          isOccupied
-                            ? 'bg-slate-200 text-slate-500'
-                            : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                        }`}
-                      >
-                        {isOccupied ? 'OCCUPIED' : 'OPEN'}
-                      </span>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase ${
+                            isFull
+                              ? 'bg-red-100 text-red-600 border border-red-200'
+                              : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          }`}
+                        >
+                          {isFull ? 'FULLY BOOKED' : `${6 - bookedCount} SEATS LEFT`}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">({bookedCount}/6)</span>
+                      </div>
                     </button>
                   );
                 })}
@@ -226,7 +232,6 @@ export default function ConferenceSlotPage() {
               {errorMsg && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl">{errorMsg}</div>}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Conference Name Selection */}
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     CONFERENCE NAME
@@ -234,7 +239,7 @@ export default function ConferenceSlotPage() {
                   <select
                     value={formData.conferenceName}
                     onChange={(e) => setFormData({ ...formData, conferenceName: e.target.value })}
-                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none"
                   >
                     <option value="Oncology For Post Graduates">Oncology For Post Graduates</option>
                     <option value="Minister for Health, Medical & Family Welfare Government of Telangana Hyderabad">
@@ -243,7 +248,6 @@ export default function ConferenceSlotPage() {
                   </select>
                 </div>
 
-                {/* Designation Selection */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     DESIGNATION *
@@ -251,7 +255,7 @@ export default function ConferenceSlotPage() {
                   <select
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none"
                   >
                     <option value="Delegate">Delegate</option>
                     <option value="Faculty">Faculty</option>

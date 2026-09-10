@@ -40,8 +40,8 @@ const ConferenceBookingSchema: Schema<IConferenceBooking> = new Schema(
   { timestamps: true }
 );
 
-// Prevent duplicate bookings for the exact same date and time
-ConferenceBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: true });
+// Indexed for search performance (Removed unique: true so up to 6 people can book)
+ConferenceBookingSchema.index({ slotDate: 1, slotTime: 1 });
 
 export const ConferenceBooking: Model<IConferenceBooking> =
   mongoose.models.ConferenceBooking || mongoose.model<IConferenceBooking>('ConferenceBooking', ConferenceBookingSchema);
