@@ -7,10 +7,7 @@ const MAX_SLOT_CAPACITY = 6;
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
-    // Ensure any legacy unique index on `slotDate`+`slotTime` (or other
-    // stray unique indexes) is removed once per server instance. Some older
-    // deployments accidentally created a unique index that caused E11000
-    // duplicate key errors when multiple users tried to book the same slot.
+
     try {
       const globalAny: any = global as any;
       if (!globalAny._conferenceBookingIndexFixed) {
@@ -29,7 +26,6 @@ export async function POST(req: Request) {
             }
           }
         }
-        // Also attempt to remove any legacy bookingNo index if present
         await ConferenceBooking.collection.dropIndex('bookingNo_1').catch(() => null);
         globalAny._conferenceBookingIndexFixed = true;
       }
@@ -59,8 +55,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check existing bookings for this specific slot
-    const existingCount = await ConferenceBooking.countDocuments({ slotDate, slotTime });
+    // Check existing bookings for this specific slot and conference
+    const existingCount = await ConferenceBooking.countDocuments({
+      slotDate,
+      slotTime,
+      conferenceName,
+    });
 
     if (existingCount >= MAX_SLOT_CAPACITY) {
       return NextResponse.json(
@@ -76,24 +76,23 @@ export async function POST(req: Request) {
     let booking;
     try {
       booking = await ConferenceBooking.create({
-      slotDate,
-      slotTime,
-      sequentialId: generatedSequentialId,
-      conferenceName,
-      designation,
-      title,
-      fullName,
-      specialty,
-      countryCode,
-      mobileNumber,
-      email,
-      hospitalName,
-      country,
-      state,
-      city,
+        slotDate,
+        slotTime,
+        sequentialId: generatedSequentialId,
+        conferenceName,
+        designation,
+        title,
+        fullName,
+        specialty,
+        countryCode,
+        mobileNumber,
+        email,
+        hospitalName,
+        country,
+        state,
+        city,
       });
     } catch (createErr: any) {
-      // Handle duplicate key errors more gracefully
       if (createErr && (createErr.code === 11000 || createErr.code === 11001)) {
         console.warn('Duplicate key error when creating booking:', createErr.message || createErr);
         return NextResponse.json(

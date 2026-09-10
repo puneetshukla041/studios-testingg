@@ -40,9 +40,12 @@ const ConferenceBookingSchema: Schema<IConferenceBooking> = new Schema(
   { timestamps: true }
 );
 
-// Indexed for search performance. Explicitly non-unique so multiple
-// bookings may exist for the same slot (capacity is enforced elsewhere).
-ConferenceBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: false, background: true });
+// Index for search performance based on date, slot, and conference name
+ConferenceBookingSchema.index(
+  { slotDate: 1, slotTime: 1, conferenceName: 1 },
+  { unique: false, background: true }
+);
 
 export const ConferenceBooking: Model<IConferenceBooking> =
-  mongoose.models.ConferenceBooking || mongoose.model<IConferenceBooking>('ConferenceBooking', ConferenceBookingSchema);
+  mongoose.models.ConferenceBooking ||
+  mongoose.model<IConferenceBooking>('ConferenceBooking', ConferenceBookingSchema);

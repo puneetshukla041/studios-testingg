@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date');
+    const conferenceName = searchParams.get('conferenceName');
 
     if (!date) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 });
@@ -15,9 +16,14 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
 
-    // Group bookings by slotTime and count total reservations per slot
+    const matchQuery: Record<string, any> = { slotDate: date };
+    if (conferenceName) {
+      matchQuery.conferenceName = conferenceName;
+    }
+
+    // Group bookings by slotTime and count total reservations per slot for this date & conference
     const slotCountsRaw = await ConferenceBooking.aggregate([
-      { $match: { slotDate: date } },
+      { $match: matchQuery },
       { $group: { _id: '$slotTime', count: { $sum: 1 } } },
     ]);
 

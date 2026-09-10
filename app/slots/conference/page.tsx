@@ -5,10 +5,12 @@ import { toPng } from 'html-to-image';
 import { Check, Download, RefreshCw, ArrowLeft } from 'lucide-react';
 import { generateTimeSlots } from '@/lib/slots';
 
+const CONF_ONCOLOGY = 'Oncology For Post Graduates';
+const CONF_MINISTER = 'Minister for Health, Medical & Family Welfare Government of Telangana Hyderabad';
+
 export default function ConferenceSlotPage() {
-  // Changed initial step to FILL_DETAILS
   const [step, setStep] = useState<'FILL_DETAILS' | 'SELECT_SLOT' | 'TICKET'>('FILL_DETAILS');
-  const [selectedDate, setSelectedDate] = useState<string>('2026-09-09');
+  const [selectedDate, setSelectedDate] = useState<string>('2026-09-12');
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
   const [slotCounts, setSlotCounts] = useState<Record<string, number>>({});
@@ -17,7 +19,7 @@ export default function ConferenceSlotPage() {
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   const [formData, setFormData] = useState({
-    conferenceName: 'Oncology For Post Graduates',
+    conferenceName: CONF_ONCOLOGY,
     designation: 'Delegate',
     title: 'Dr.',
     fullName: '',
@@ -37,13 +39,20 @@ export default function ConferenceSlotPage() {
 
   useEffect(() => {
     setTimeSlots(generateTimeSlots());
-    fetchOccupiedSlots();
-  }, [selectedDate]);
+  }, []);
+
+  useEffect(() => {
+    if (formData.conferenceName) {
+      fetchOccupiedSlots();
+    }
+  }, [selectedDate, formData.conferenceName]);
 
   const fetchOccupiedSlots = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/slots/conference?date=${selectedDate}`);
+      const res = await fetch(
+        `/api/slots/conference?date=${selectedDate}&conferenceName=${encodeURIComponent(formData.conferenceName)}`
+      );
       const data = await res.json();
       if (res.ok) {
         setOccupiedSlots(data.occupiedSlots || []);
@@ -56,21 +65,28 @@ export default function ConferenceSlotPage() {
     }
   };
 
-  // Step 1: Validate form and move to slot selection
+  const handleConferenceChange = (conference: string) => {
+    if (conference === CONF_MINISTER) {
+      setSelectedDate('2026-09-13');
+    } else if (conference === CONF_ONCOLOGY && selectedDate !== '2026-09-12' && selectedDate !== '2026-09-13') {
+      setSelectedDate('2026-09-12');
+    }
+    setFormData((prev) => ({ ...prev, conferenceName: conference }));
+  };
+
   const handleProceedToSlots = (e: React.FormEvent) => {
     e.preventDefault();
     setIsTransitioning(true);
     setTimeout(() => {
       setStep('SELECT_SLOT');
       setIsTransitioning(false);
-    }, 8000);
+    }, 400);
     setErrorMsg('');
   };
 
-  // Step 2: Book the slot immediately upon selection
   const handleBookSlot = async (slot: string) => {
     if (occupiedSlots.includes(slot)) return;
-    
+
     setSelectedSlot(slot);
     setLoading(true);
     setErrorMsg('');
@@ -94,10 +110,10 @@ export default function ConferenceSlotPage() {
       setTimeout(() => {
         setStep('TICKET');
         setIsTransitioning(false);
-      }, 8000);
+      }, 400);
     } catch (err: any) {
       setErrorMsg(err.message);
-      setStep('SELECT_SLOT'); // Stay on slot selection if booking fails
+      setStep('SELECT_SLOT');
     } finally {
       setLoading(false);
     }
@@ -125,7 +141,7 @@ export default function ConferenceSlotPage() {
       fullName: '',
       mobileNumber: '',
       email: '',
-    }); // Clear unique identifiers for the next booking
+    });
     fetchOccupiedSlots();
   };
 
@@ -133,7 +149,8 @@ export default function ConferenceSlotPage() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 pb-16 flex items-center justify-center">
         <div className="text-center">
-          <p className="mt-3 text-sm text-slate-600">Loading...</p>
+          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+          <p className="mt-3 text-sm text-slate-600 font-medium">Processing request...</p>
         </div>
       </div>
     );
@@ -157,30 +174,49 @@ export default function ConferenceSlotPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 mt-8">
-        
         {/* STEP 1: FILL DETAILS */}
         {step === 'FILL_DETAILS' && (
           <div className="max-w-3xl mx-auto space-y-6">
             <form onSubmit={handleProceedToSlots} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Practitioner & Institutional Details</h2>
-                <p className="text-xs text-slate-500 mt-1">Please provide accurate verification information.</p>
+                <p className="text-xs text-slate-500 mt-1">Please select your conference and provide accurate verification details.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    CONFERENCE NAME
+                    CONFERENCE NAME *
                   </label>
                   <select
                     value={formData.conferenceName}
-                    onChange={(e) => setFormData({ ...formData, conferenceName: e.target.value })}
+                    onChange={(e) => handleConferenceChange(e.target.value)}
                     className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none"
                   >
-                    <option value="Oncology For Post Graduates">Oncology For Post Graduates</option>
-                    <option value="Minister for Health, Medical & Family Welfare Government of Telangana Hyderabad">
+                    <option value={CONF_ONCOLOGY}>Oncology For Post Graduates</option>
+                    <option value={CONF_MINISTER}>
                       Minister for Health, Medical & Family Welfare Government of Telangana Hyderabad
                     </option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    CONFERENCE DATE *
+                  </label>
+                  <select
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-purple-300 focus:border-purple-500 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none"
+                  >
+                    {formData.conferenceName === CONF_ONCOLOGY ? (
+                      <>
+                        <option value="2026-09-12">12th September 2026</option>
+                        <option value="2026-09-13">13th September 2026</option>
+                      </>
+                    ) : (
+                      <option value="2026-09-13">13th September 2026</option>
+                    )}
                   </select>
                 </div>
 
@@ -347,7 +383,7 @@ export default function ConferenceSlotPage() {
         {/* STEP 2: SELECT SLOT */}
         {step === 'SELECT_SLOT' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-100">
-            <button 
+            <button
               onClick={() => setStep('FILL_DETAILS')}
               className="flex items-center text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-6"
             >
@@ -373,16 +409,15 @@ export default function ConferenceSlotPage() {
                     <span className="text-slate-600">Full (6/6)</span>
                   </div>
                 </div>
+                
+                {/* Fixed Date Badge (Calendar Input Removed) */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex flex-col justify-center">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    SESSION DATE
+                    SELECTED DATE
                   </span>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="bg-transparent font-medium text-slate-800 text-sm focus:outline-none cursor-pointer"
-                  />
+                  <span className="font-semibold text-slate-800 text-sm">
+                    {selectedDate === '2026-09-12' ? '12th Sept 2026' : '13th Sept 2026'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -423,7 +458,7 @@ export default function ConferenceSlotPage() {
                         </span>
                         <span className="text-[10px] text-slate-400 font-medium">({bookedCount}/6)</span>
                       </div>
-                      
+
                       {!isFull && (
                         <div className="absolute inset-x-0 bottom-0 translate-y-full bg-blue-500 py-1.5 text-[10px] font-bold text-white uppercase tracking-wider group-hover:translate-y-0 transition-transform">
                           Click to Book

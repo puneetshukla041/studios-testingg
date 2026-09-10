@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const booking = await MantramBooking.create({
       slotDate,
-      slotTime,
+      slotTime: typeof slotTime === 'string' ? slotTime.trim() : slotTime,
       sequentialId,
       title: title || 'Dr.',
       fullName,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, booking }, { status: 201 });
   } catch (error: any) {
     if (error && (error.code === 11000 || error.code === 11001)) {
-      return NextResponse.json({ error: 'Slot already booked. Pick another.' }, { status: 409 });
+      return NextResponse.json({ error: 'Database constraint error: Slot capacity reached or legacy index conflicts.' }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

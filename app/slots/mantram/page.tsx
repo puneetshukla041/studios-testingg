@@ -5,11 +5,13 @@ import { toPng } from 'html-to-image';
 import { Check, Download, RefreshCw } from 'lucide-react';
 import { generateTimeSlots } from '@/lib/slots';
 
+const MAX_CAPACITY = 6;
+
 export default function MantramSlotPage() {
   const [step, setStep] = useState<'SELECT_SLOT' | 'FILL_DETAILS' | 'TICKET'>('SELECT_SLOT');
   const [selectedDate, setSelectedDate] = useState<string>('2026-09-09');
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
-  const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+  const [slotCounts, setSlotCounts] = useState<Record<string, number>>({});
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -53,7 +55,16 @@ export default function MantramSlotPage() {
       const res = await fetch(`/api/slots/mantram?date=${selectedDate}`);
       const data = await res.json();
       if (res.ok) {
-        setOccupiedSlots(data.occupiedSlots || []);
+        // Handle backwards compatibility whether API returns counts map or list of occupied slots
+        if (data.slotCounts) {
+          setSlotCounts(data.slotCounts);
+        } else if (data.occupiedSlots) {
+          const counts: Record<string, number> = {};
+          data.occupiedSlots.forEach((slot: string) => {
+            counts[slot] = MAX_CAPACITY; // fallback assuming fully booked if old API format
+          });
+          setSlotCounts(counts);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -63,7 +74,8 @@ export default function MantramSlotPage() {
   };
 
   const handleSelectSlot = (slot: string) => {
-    if (occupiedSlots.includes(slot)) return;
+    const currentCount = slotCounts[slot] || 0;
+    if (currentCount >= MAX_CAPACITY) return;
     setIsTransitioning(true);
     setErrorMsg('');
     setTimeout(() => {
@@ -170,7 +182,7 @@ export default function MantramSlotPage() {
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <span className="w-3 h-3 rounded-full bg-slate-300"></span>
-                    <span className="text-slate-600">Occupied</span>
+                    <span className="text-slate-600">Full / Occupied</span>
                   </div>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex flex-col justify-center">
@@ -192,28 +204,34 @@ export default function MantramSlotPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3">
                 {timeSlots.map((slot) => {
-                  const isOccupied = occupiedSlots.includes(slot);
+                  const count = slotCounts[slot] || 0;
+                  const isFull = count >= MAX_CAPACITY;
                   return (
                     <button
                       key={slot}
-                      disabled={isOccupied}
+                      disabled={isFull}
                       onClick={() => handleSelectSlot(slot)}
                       className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-between h-24 ${
-                        isOccupied
+                        isFull
                           ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
                           : 'bg-white border-slate-200 hover:border-purple-500 hover:shadow-md cursor-pointer'
                       }`}
                     >
                       <span className="text-xs font-bold text-slate-800 leading-tight">{slot}</span>
-                      <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
-                          isOccupied
-                            ? 'bg-slate-200 text-slate-500'
-                            : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                        }`}
-                      >
-                        {isOccupied ? 'OCCUPIED' : 'OPEN'}
-                      </span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-[9px] text-slate-400 font-medium mb-0.5">
+                          {count}/{MAX_CAPACITY} booked
+                        </span>
+                        <span
+                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
+                            isFull
+                              ? 'bg-slate-200 text-slate-500'
+                              : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          }`}
+                        >
+                          {isFull ? 'FULL' : 'OPEN'}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}
@@ -451,7 +469,7 @@ export default function MantramSlotPage() {
                 <div className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl">
                   <span className="text-[10px] font-bold text-emerald-700 uppercase block mb-0.5">VENUE LOCATION</span>
                   <p className="text-xs font-medium text-emerald-900">
-                    , {confirmedBooking.city}, {confirmedBooking.state}, {confirmedBooking.country}
+                    {confirmedBooking.city}, {confirmedBooking.state}, {confirmedBooking.country}
                   </p>
                 </div>
               </div>
