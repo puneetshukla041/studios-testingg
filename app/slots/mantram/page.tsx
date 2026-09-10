@@ -57,7 +57,7 @@ interface BookingResponse {
   error?: string;
 }
 
-const DEFAULT_MAX_SLOT_CAPACITY = 6;
+const DEFAULT_MAX_SLOT_CAPACITY = 1;
 
 const inputClassName =
   'min-h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-100 sm:px-4';

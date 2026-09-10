@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MantramBooking } from '@/models/MantramBooking';
 
-const MAX_SLOT_CAPACITY = 6;
+const MAX_SLOT_CAPACITY = 1;
 const MAX_ID_ATTEMPTS = 5;
 
 type MongoIndexInformation = {
