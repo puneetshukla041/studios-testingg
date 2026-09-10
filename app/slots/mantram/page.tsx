@@ -29,9 +29,21 @@ export default function MantramSlotPage() {
 
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   useEffect(() => {
-    setTimeSlots(generateTimeSlots());
+    setTimeSlots(
+      generateTimeSlots({
+        slotDuration: 5,
+        gap: 2,
+        morningStart: 9 * 60,
+        morningEnd: 13 * 60,
+        lunchStart: 13 * 60,
+        lunchEnd: 14 * 60,
+        afternoonStart: 14 * 60,
+        afternoonEnd: 17.5 * 60,
+      })
+    );
     fetchOccupiedSlots();
   }, [selectedDate]);
 
@@ -52,9 +64,13 @@ export default function MantramSlotPage() {
 
   const handleSelectSlot = (slot: string) => {
     if (occupiedSlots.includes(slot)) return;
-    setSelectedSlot(slot);
-    setStep('FILL_DETAILS');
+    setIsTransitioning(true);
     setErrorMsg('');
+    setTimeout(() => {
+      setSelectedSlot(slot);
+      setStep('FILL_DETAILS');
+      setIsTransitioning(false);
+    }, 8000);
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -77,7 +93,11 @@ export default function MantramSlotPage() {
       if (!res.ok) throw new Error(data.error || 'Booking failed');
 
       setConfirmedBooking(data.booking);
-      setStep('TICKET');
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setStep('TICKET');
+        setIsTransitioning(false);
+      }, 8000);
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
@@ -104,6 +124,16 @@ export default function MantramSlotPage() {
     setConfirmedBooking(null);
     fetchOccupiedSlots();
   };
+
+  if (isTransitioning) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 pb-16 flex items-center justify-center">
+        <div className="text-center">
+          <p className="mt-3 text-sm text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 pb-16">

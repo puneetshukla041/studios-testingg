@@ -33,6 +33,7 @@ export default function ConferenceSlotPage() {
 
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   useEffect(() => {
     setTimeSlots(generateTimeSlots());
@@ -58,7 +59,11 @@ export default function ConferenceSlotPage() {
   // Step 1: Validate form and move to slot selection
   const handleProceedToSlots = (e: React.FormEvent) => {
     e.preventDefault();
-    setStep('SELECT_SLOT');
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setStep('SELECT_SLOT');
+      setIsTransitioning(false);
+    }, 8000);
     setErrorMsg('');
   };
 
@@ -85,7 +90,11 @@ export default function ConferenceSlotPage() {
       if (!res.ok) throw new Error(data.error || 'Booking failed');
 
       setConfirmedBooking(data.booking);
-      setStep('TICKET');
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setStep('TICKET');
+        setIsTransitioning(false);
+      }, 8000);
     } catch (err: any) {
       setErrorMsg(err.message);
       setStep('SELECT_SLOT'); // Stay on slot selection if booking fails
@@ -119,6 +128,16 @@ export default function ConferenceSlotPage() {
     }); // Clear unique identifiers for the next booking
     fetchOccupiedSlots();
   };
+
+  if (isTransitioning) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 pb-16 flex items-center justify-center">
+        <div className="text-center">
+          <p className="mt-3 text-sm text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 pb-16">

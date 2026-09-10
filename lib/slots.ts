@@ -1,10 +1,32 @@
-export function generateTimeSlots(): string[] {
+export type SlotOptions = {
+  slotDuration?: number; // minutes
+  gap?: number; // minutes
+  morningStart?: number; // minutes from midnight
+  morningEnd?: number;
+  lunchStart?: number;
+  lunchEnd?: number;
+  afternoonStart?: number;
+  afternoonEnd?: number;
+};
+
+export function generateTimeSlots(opts?: SlotOptions): string[] {
   const slots: string[] = [];
 
-  // Helper to format total minutes to 12-hour format string (e.g., "09:00 AM - 09:30 AM")
+  const {
+    slotDuration = 30,
+    gap = 2,
+    morningStart = 9 * 60,
+    morningEnd = 13 * 60,
+    lunchStart = 13 * 60,
+    lunchEnd = 14 * 60,
+    afternoonStart = 14 * 60,
+    afternoonEnd = 17.5 * 60,
+  } = opts || {};
+
+  // Helper to format total minutes to 12-hour format string (e.g., "09:00 AM")
   const formatTime = (totalMinutes: number) => {
     const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
+    const mins = Math.round(totalMinutes % 60);
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 === 0 ? 12 : hours % 12;
     const formattedH = displayHours < 10 ? `0${displayHours}` : `${displayHours}`;
@@ -14,8 +36,6 @@ export function generateTimeSlots(): string[] {
 
   const createSessionSlots = (startMins: number, endMins: number) => {
     let current = startMins;
-    const slotDuration = 30; // 30 mins
-    const gap = 2; // 2 mins gap
 
     while (current + slotDuration <= endMins) {
       const startStr = formatTime(current);
@@ -25,13 +45,13 @@ export function generateTimeSlots(): string[] {
     }
   };
 
-  // Morning Session: 09:00 AM (540 mins) to 01:00 PM (780 mins)
-  createSessionSlots(9 * 60, 13 * 60);
+  // Morning Session
+  createSessionSlots(morningStart, morningEnd);
 
-  // Lunch Break: 01:00 PM (13:00) to 02:00 PM (14:00) - EXCLUDED
+  // Lunch break is intentionally skipped (between lunchStart and lunchEnd)
 
-  // Afternoon Session: 02:00 PM (840 mins) to 05:30 PM (1050 mins)
-  createSessionSlots(14 * 60, 17.5 * 60);
+  // Afternoon Session
+  createSessionSlots(afternoonStart, afternoonEnd);
 
   return slots;
 }
