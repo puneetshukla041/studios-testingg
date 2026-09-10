@@ -1,6 +1,10 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, {
+  HydratedDocument,
+  Model,
+  Schema,
+} from 'mongoose';
 
-export interface IMantramBooking extends Document {
+export interface IMantramBooking {
   slotDate: string;
   slotTime: string;
   sequentialId: string;
@@ -15,30 +19,158 @@ export interface IMantramBooking extends Document {
   state: string;
   city: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const MantramBookingSchema: Schema<IMantramBooking> = new Schema(
+export type MantramBookingDocument =
+  HydratedDocument<IMantramBooking>;
+
+const cleanRequiredString = (value: unknown): string => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const cleanEmail = (value: unknown): string => {
+  return typeof value === 'string'
+    ? value.trim().toLowerCase()
+    : '';
+};
+
+const MantramBookingSchema = new Schema<IMantramBooking>(
   {
-    slotDate: { type: String, required: true },
-    slotTime: { type: String, required: true },
-    sequentialId: { type: String, required: true, unique: true },
-    title: { type: String, required: true, default: 'Dr.' },
-    fullName: { type: String, required: true },
-    specialty: { type: String, required: true },
-    countryCode: { type: String, required: true, default: '+91 (IN)' },
-    mobileNumber: { type: String, required: true },
-    email: { type: String, required: true },
-    hospitalName: { type: String, required: true },
-    country: { type: String, required: true, default: 'India' },
-    state: { type: String, required: true },
-    city: { type: String, required: true },
+    slotDate: {
+      type: String,
+      required: [true, 'Slot date is required'],
+      trim: true,
+      index: true,
+      set: cleanRequiredString,
+    },
+
+    slotTime: {
+      type: String,
+      required: [true, 'Slot time is required'],
+      trim: true,
+      index: true,
+      set: cleanRequiredString,
+    },
+
+    sequentialId: {
+      type: String,
+      required: [true, 'Sequential ID is required'],
+      unique: true,
+      trim: true,
+      set: cleanRequiredString,
+    },
+
+    title: {
+      type: String,
+      required: [true, 'Title is required'],
+      trim: true,
+      default: 'Dr.',
+      set: cleanRequiredString,
+    },
+
+    fullName: {
+      type: String,
+      required: [true, 'Full name is required'],
+      trim: true,
+      set: cleanRequiredString,
+    },
+
+    specialty: {
+      type: String,
+      required: [true, 'Specialty is required'],
+      trim: true,
+      set: cleanRequiredString,
+    },
+
+    countryCode: {
+      type: String,
+      required: [true, 'Country code is required'],
+      trim: true,
+      default: '+91 (IN)',
+      set: cleanRequiredString,
+    },
+
+    mobileNumber: {
+      type: String,
+      required: [true, 'Mobile number is required'],
+      trim: true,
+      set: cleanRequiredString,
+    },
+
+    email: {
+      type: String,
+      required: [true, 'Email address is required'],
+      trim: true,
+      lowercase: true,
+      set: cleanEmail,
+      match: [
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        'Please provide a valid email address',
+      ],
+    },
+
+    hospitalName: {
+      type: String,
+      required: [true, 'Hospital name is required'],
+      trim: true,
+      set: cleanRequiredString,
+    },
+
+    country: {
+      type: String,
+      required: [true, 'Country is required'],
+      trim: true,
+      default: 'India',
+      set: cleanRequiredString,
+    },
+
+    state: {
+      type: String,
+      required: [true, 'State is required'],
+      trim: true,
+      set: cleanRequiredString,
+    },
+
+    city: {
+      type: String,
+      required: [true, 'City is required'],
+      trim: true,
+      set: cleanRequiredString,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    versionKey: false,
+  }
 );
 
-// Enforce a strict unique index on date + time so only 1 booking can ever exist per slot
-// Enforce single booking per slot at the database level for Mantram sessions
-MantramBookingSchema.index({ slotDate: 1, slotTime: 1 }, { unique: true });
+/*
+ * This is intentionally a normal, non-unique index.
+ * Multiple people can book the same date and time until the API's
+ * MAX_SLOT_CAPACITY limit is reached.
+ */
+MantramBookingSchema.index(
+  { slotDate: 1, slotTime: 1 },
+  {
+    unique: false,
+    name: 'mantram_slot_capacity_lookup',
+  }
+);
+
+MantramBookingSchema.index(
+  { createdAt: -1 },
+  {
+    name: 'mantram_created_at',
+  }
+);
+
+const existingModel = mongoose.models
+  .MantramBooking as Model<IMantramBooking> | undefined;
 
 export const MantramBooking: Model<IMantramBooking> =
-  mongoose.models.MantramBooking || mongoose.model<IMantramBooking>('MantramBooking', MantramBookingSchema);
+  existingModel ??
+  mongoose.model<IMantramBooking>(
+    'MantramBooking',
+    MantramBookingSchema
+  );
