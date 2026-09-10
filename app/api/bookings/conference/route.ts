@@ -7,6 +7,21 @@ const MAX_SLOT_CAPACITY = 6;
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
+    // Ensure any legacy unique index on `bookingNo` that causes duplicate-null errors
+    // is removed once. This guards against a pre-existing DB index named `bookingNo_1`
+    // that was created by an older schema and forces duplicate key errors when
+    // new documents don't include `bookingNo`.
+    try {
+      // Only attempt once per server instance
+      const globalAny: any = global as any;
+      if (!globalAny._conferenceBookingIndexFixed) {
+        await ConferenceBooking.collection.dropIndex('bookingNo_1').catch(() => null);
+        globalAny._conferenceBookingIndexFixed = true;
+      }
+    } catch (indexErr) {
+      // non-fatal: log and continue
+      console.warn('Index cleanup warning:', indexErr);
+    }
     
     const body = await req.json();
     const {
