@@ -25,7 +25,7 @@ export interface IMantramBooking {
 export type MantramBookingDocument =
   HydratedDocument<IMantramBooking>;
 
-const cleanRequiredString = (value: unknown): string => {
+const cleanString = (value: unknown): string => {
   return typeof value === 'string' ? value.trim() : '';
 };
 
@@ -41,16 +41,14 @@ const MantramBookingSchema = new Schema<IMantramBooking>(
       type: String,
       required: [true, 'Slot date is required'],
       trim: true,
-      index: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     slotTime: {
       type: String,
       required: [true, 'Slot time is required'],
       trim: true,
-      index: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     sequentialId: {
@@ -58,44 +56,44 @@ const MantramBookingSchema = new Schema<IMantramBooking>(
       required: [true, 'Sequential ID is required'],
       unique: true,
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     title: {
       type: String,
       required: [true, 'Title is required'],
-      trim: true,
       default: 'Dr.',
-      set: cleanRequiredString,
+      trim: true,
+      set: cleanString,
     },
 
     fullName: {
       type: String,
       required: [true, 'Full name is required'],
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     specialty: {
       type: String,
       required: [true, 'Specialty is required'],
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     countryCode: {
       type: String,
       required: [true, 'Country code is required'],
-      trim: true,
       default: '+91 (IN)',
-      set: cleanRequiredString,
+      trim: true,
+      set: cleanString,
     },
 
     mobileNumber: {
       type: String,
       required: [true, 'Mobile number is required'],
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     email: {
@@ -114,29 +112,29 @@ const MantramBookingSchema = new Schema<IMantramBooking>(
       type: String,
       required: [true, 'Hospital name is required'],
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     country: {
       type: String,
       required: [true, 'Country is required'],
-      trim: true,
       default: 'India',
-      set: cleanRequiredString,
+      trim: true,
+      set: cleanString,
     },
 
     state: {
       type: String,
       required: [true, 'State is required'],
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
 
     city: {
       type: String,
       required: [true, 'City is required'],
       trim: true,
-      set: cleanRequiredString,
+      set: cleanString,
     },
   },
   {
@@ -146,9 +144,8 @@ const MantramBookingSchema = new Schema<IMantramBooking>(
 );
 
 /*
- * This is intentionally a normal, non-unique index.
- * Multiple people can book the same date and time until the API's
- * MAX_SLOT_CAPACITY limit is reached.
+ * This index is intentionally not unique because one slot can contain
+ * up to six bookings. Capacity is enforced in the booking API.
  */
 MantramBookingSchema.index(
   { slotDate: 1, slotTime: 1 },

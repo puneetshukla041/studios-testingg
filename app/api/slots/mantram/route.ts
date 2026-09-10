@@ -4,40 +4,114 @@ import { MantramBooking } from '@/models/MantramBooking';
 
 const MAX_SLOT_CAPACITY = 6;
 
-export async function GET(req: NextRequest) {
+interface SlotCountResult {
+  _id: string;
+  count: number;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'Unable to load slot availability.';
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const date = searchParams.get('date');
-    const debug = searchParams.get('debug');
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date')?.trim();
 
     if (!date) {
-      return NextResponse.json({ error: 'Date is required' }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Date is required.',
+        },
+        { status: 400 }
+      );
     }
 
     await connectToDatabase();
-    const bookings = await MantramBooking.find({ slotDate: date }).select('slotTime').lean();
 
-    // Count the number of bookings for each slot time
+    /*
+     * Group bookings directly in MongoDB. This is faster and ensures
+     * the page receives the count for every slot.
+     */
+    const results =
+      await MantramBooking.aggregate<SlotCountResult>([
+        {
+          $match: {
+            slotDate: date,
+          },
+        },
+        {
+          $project: {
+            normalizedSlotTime: {
+              $trim: {
+                input: '$slotTime',
+              },
+            },
+          },
+        },
+        {
+          $match: {
+            normalizedSlotTime: {
+              $ne: '',
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$normalizedSlotTime',
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+        {
+          $sort: {
+            _id: 1,
+          },
+        },
+      ]);
+
     const slotCounts: Record<string, number> = {};
-    for (const b of bookings) {
-      if (b && b.slotTime && typeof b.slotTime === 'string') {
-        const time = b.slotTime.trim();
-        slotCounts[time] = (slotCounts[time] || 0) + 1;
+
+    for (const result of results) {
+      slotCounts[result._id] = result.count;
+    }
+
+    const fullSlots = results
+      .filter(
+        (result) => result.count >= MAX_SLOT_CAPACITY
+      )
+      .map((result) => result._id);
+
+    return NextResponse.json(
+      {
+        /*
+         * fullSlots is the preferred response field.
+         * occupiedSlots is retained for backward compatibility.
+         */
+        fullSlots,
+        occupiedSlots: fullSlots,
+        slotCounts,
+        maxCapacity: MAX_SLOT_CAPACITY,
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
+        },
       }
-    }
-
-    // Only mark a slot as occupied if its booking count reaches the maximum capacity
-    const occupiedSlots = Object.keys(slotCounts).filter(
-      (time) => slotCounts[time] >= MAX_SLOT_CAPACITY
     );
+  } catch (error) {
+    console.error('Mantram availability error:', error);
 
-    if (debug === 'true') {
-      const indexes = await MantramBooking.collection.indexes();
-      return NextResponse.json({ occupiedSlots, slotCounts, count: occupiedSlots.length, rawCount: bookings.length, indexes }, { status: 200 });
-    }
-
-    return NextResponse.json({ occupiedSlots }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: getErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }
