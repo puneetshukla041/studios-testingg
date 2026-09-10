@@ -23,8 +23,10 @@ export async function POST(req: Request) {
             idx.key.slotTime === 1 &&
             idx.unique
           ) {
-            await ConferenceBooking.collection.dropIndex(idx.name).catch(() => null);
-            console.info('Dropped legacy unique index on slotDate+slotTime:', idx.name);
+            if (idx.name) {
+              await ConferenceBooking.collection.dropIndex(idx.name).catch(() => null);
+              console.info('Dropped legacy unique index on slotDate+slotTime:', idx.name);
+            }
           }
         }
         // Also attempt to remove any legacy bookingNo index if present
