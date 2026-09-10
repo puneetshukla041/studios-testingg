@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { toPng } from 'html-to-image';
-import { Check, Download, RefreshCw } from 'lucide-react';
+import { Check, Download, RefreshCw, ArrowLeft } from 'lucide-react';
 import { generateTimeSlots } from '@/lib/slots';
 
 export default function ConferenceSlotPage() {
-  const [step, setStep] = useState<'SELECT_SLOT' | 'FILL_DETAILS' | 'TICKET'>('SELECT_SLOT');
+  // Changed initial step to FILL_DETAILS
+  const [step, setStep] = useState<'FILL_DETAILS' | 'SELECT_SLOT' | 'TICKET'>('FILL_DETAILS');
   const [selectedDate, setSelectedDate] = useState<string>('2026-09-09');
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
@@ -54,15 +55,18 @@ export default function ConferenceSlotPage() {
     }
   };
 
-  const handleSelectSlot = (slot: string) => {
-    if (occupiedSlots.includes(slot)) return;
-    setSelectedSlot(slot);
-    setStep('FILL_DETAILS');
+  // Step 1: Validate form and move to slot selection
+  const handleProceedToSlots = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep('SELECT_SLOT');
     setErrorMsg('');
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Step 2: Book the slot immediately upon selection
+  const handleBookSlot = async (slot: string) => {
+    if (occupiedSlots.includes(slot)) return;
+    
+    setSelectedSlot(slot);
     setLoading(true);
     setErrorMsg('');
 
@@ -72,7 +76,7 @@ export default function ConferenceSlotPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slotDate: selectedDate,
-          slotTime: selectedSlot,
+          slotTime: slot,
           ...formData,
         }),
       });
@@ -84,6 +88,7 @@ export default function ConferenceSlotPage() {
       setStep('TICKET');
     } catch (err: any) {
       setErrorMsg(err.message);
+      setStep('SELECT_SLOT'); // Stay on slot selection if booking fails
     } finally {
       setLoading(false);
     }
@@ -103,9 +108,15 @@ export default function ConferenceSlotPage() {
   };
 
   const resetAll = () => {
-    setStep('SELECT_SLOT');
+    setStep('FILL_DETAILS');
     setSelectedSlot(null);
     setConfirmedBooking(null);
+    setFormData({
+      ...formData,
+      fullName: '',
+      mobileNumber: '',
+      email: '',
+    }); // Clear unique identifiers for the next booking
     fetchOccupiedSlots();
   };
 
@@ -127,109 +138,15 @@ export default function ConferenceSlotPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 mt-8">
-        {step === 'SELECT_SLOT' && (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-100">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Select Session Slot</h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Each slot is 30 mins with 2 min breaks • Lunch Break: 01:00 PM - 02:00 PM
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="flex items-center space-x-4 text-xs font-semibold">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                    <span className="text-slate-600">Available</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-3 h-3 rounded-full bg-red-400"></span>
-                    <span className="text-slate-600">Full (6/6)</span>
-                  </div>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex flex-col justify-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    SESSION DATE
-                  </span>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="bg-transparent font-medium text-slate-800 text-sm focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="py-20 text-center text-slate-400">Loading slots...</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {timeSlots.map((slot) => {
-                  const bookedCount = slotCounts[slot] || 0;
-                  const isFull = bookedCount >= 6;
-                  return (
-                    <button
-                      key={slot}
-                      disabled={isFull}
-                      onClick={() => handleSelectSlot(slot)}
-                      className={`p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-between min-h-[100px] ${
-                        isFull
-                          ? 'bg-red-50/50 border-red-200 text-slate-400 cursor-not-allowed'
-                          : 'bg-white border-slate-200 hover:border-blue-500 hover:shadow-md cursor-pointer'
-                      }`}
-                    >
-                      <span className="text-xs font-bold text-slate-800 leading-tight">{slot}</span>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase ${
-                            isFull
-                              ? 'bg-red-100 text-red-600 border border-red-200'
-                              : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                          }`}
-                        >
-                          {isFull ? 'FULLY BOOKED' : `${6 - bookedCount} SEATS LEFT`}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">({bookedCount}/6)</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
+        
+        {/* STEP 1: FILL DETAILS */}
         {step === 'FILL_DETAILS' && (
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">
-                  LOCKED TARGET SLOT
-                </span>
-                <div className="flex items-center space-x-3 mt-1">
-                  <span className="text-lg font-bold text-slate-900">{selectedDate}</span>
-                  <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full border border-blue-100">
-                    {selectedSlot}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setStep('SELECT_SLOT')}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 rounded-xl"
-              >
-                Change Slot
-              </button>
-            </div>
-
-            <form onSubmit={handleFormSubmit} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm space-y-6">
+            <form onSubmit={handleProceedToSlots} className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Practitioner & Institutional Details</h2>
                 <p className="text-xs text-slate-500 mt-1">Please provide accurate verification information.</p>
               </div>
-
-              {errorMsg && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl">{errorMsg}</div>}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
@@ -270,7 +187,7 @@ export default function ConferenceSlotPage() {
                     <select
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none"
                     >
                       <option>Dr.</option>
                       <option>Prof.</option>
@@ -282,7 +199,7 @@ export default function ConferenceSlotPage() {
                       placeholder="e.g. Ramesh Kumar"
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -297,7 +214,7 @@ export default function ConferenceSlotPage() {
                     placeholder="Surgery"
                     value={formData.specialty}
                     onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -309,7 +226,7 @@ export default function ConferenceSlotPage() {
                     <select
                       value={formData.countryCode}
                       onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none"
                     >
                       <option>+91 (IN)</option>
                       <option>+1 (US)</option>
@@ -320,7 +237,7 @@ export default function ConferenceSlotPage() {
                       placeholder="9876543210"
                       value={formData.mobileNumber}
                       onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -335,7 +252,7 @@ export default function ConferenceSlotPage() {
                     placeholder="doctor@hospital.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -349,7 +266,7 @@ export default function ConferenceSlotPage() {
                     placeholder="e.g. All India Institute of Medical Sciences"
                     value={formData.hospitalName}
                     onChange={(e) => setFormData({ ...formData, hospitalName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -360,7 +277,7 @@ export default function ConferenceSlotPage() {
                   <select
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-blue-500"
                   >
                     <option>India</option>
                     <option>United States</option>
@@ -377,7 +294,7 @@ export default function ConferenceSlotPage() {
                     placeholder="Delhi"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -391,31 +308,117 @@ export default function ConferenceSlotPage() {
                     placeholder="New Delhi"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end items-center space-x-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setStep('SELECT_SLOT')}
-                  className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm"
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-end pt-6 border-t border-slate-100">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
+                  className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 transition-colors text-white font-bold text-sm shadow-md shadow-blue-200"
                 >
-                  {loading ? 'Processing...' : 'Confirm & Generate Ticket'}
+                  Proceed to Select Slot
                 </button>
               </div>
             </form>
           </div>
         )}
 
+        {/* STEP 2: SELECT SLOT */}
+        {step === 'SELECT_SLOT' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-100">
+            <button 
+              onClick={() => setStep('FILL_DETAILS')}
+              className="flex items-center text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-6"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              Back to edit details
+            </button>
+
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Select Session Slot</h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Clicking a slot will instantly confirm your booking for <strong>{formData.fullName}</strong>.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center space-x-4 text-xs font-semibold">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <span className="text-slate-600">Available</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-3 h-3 rounded-full bg-red-400"></span>
+                    <span className="text-slate-600">Full (6/6)</span>
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex flex-col justify-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    SESSION DATE
+                  </span>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="bg-transparent font-medium text-slate-800 text-sm focus:outline-none cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {errorMsg && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100">{errorMsg}</div>}
+
+            {loading ? (
+              <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+                <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                <span className="text-slate-500 font-medium">{selectedSlot ? 'Securing your slot...' : 'Loading available slots...'}</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {timeSlots.map((slot) => {
+                  const bookedCount = slotCounts[slot] || 0;
+                  const isFull = bookedCount >= 6;
+                  return (
+                    <button
+                      key={slot}
+                      disabled={isFull || loading}
+                      onClick={() => handleBookSlot(slot)}
+                      className={`p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-between min-h-[100px] ${
+                        isFull
+                          ? 'bg-red-50/50 border-red-200 text-slate-400 cursor-not-allowed'
+                          : 'bg-white border-slate-200 hover:border-blue-500 hover:shadow-md cursor-pointer group relative overflow-hidden'
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-slate-800 leading-tight transition-transform group-hover:-translate-y-1">{slot}</span>
+                      <div className="mt-2 flex items-center gap-2 transition-transform group-hover:-translate-y-1">
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase ${
+                            isFull
+                              ? 'bg-red-100 text-red-600 border border-red-200'
+                              : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          }`}
+                        >
+                          {isFull ? 'FULLY BOOKED' : `${6 - bookedCount} SEATS LEFT`}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">({bookedCount}/6)</span>
+                      </div>
+                      
+                      {!isFull && (
+                        <div className="absolute inset-x-0 bottom-0 translate-y-full bg-blue-500 py-1.5 text-[10px] font-bold text-white uppercase tracking-wider group-hover:translate-y-0 transition-transform">
+                          Click to Book
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 3: TICKET */}
         {step === 'TICKET' && confirmedBooking && (
           <div className="max-w-md mx-auto my-6 space-y-4">
             <div ref={ticketRef} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xl">
@@ -475,7 +478,7 @@ export default function ConferenceSlotPage() {
               <button
                 type="button"
                 onClick={handleDownloadTicket}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-100"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-100 transition-colors"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Ticket</span>
@@ -483,7 +486,7 @@ export default function ConferenceSlotPage() {
               <button
                 type="button"
                 onClick={resetAll}
-                className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2"
+                className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Book Another</span>
