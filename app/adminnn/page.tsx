@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       setError('');
 
       try {
-        const response = await fetch('/api/admin/booking', {
+        const response = await fetch('/api/admin/bookings', {
           method: 'GET',
           cache: 'no-store',
           signal: controller.signal,
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
         const contentType = response.headers.get('content-type');
 
         if (!contentType?.includes('application/json')) {
-          throw new Error('Database is facing too much bookings.');
+          throw new Error('The server returned an invalid response.');
         }
 
         const json =
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
 
         if (!response.ok) {
           throw new Error(
-            json.error || 'Database is facing too much bookings.'
+            json.error || 'Failed to fetch registration data.'
           );
         }
 
