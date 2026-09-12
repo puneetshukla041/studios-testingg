@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 type CategoryType = 'all' | 'amnatram' | 'conference';
 
 interface RegistrationData {
+  [key: string]: unknown;
   id: string;
   name: string;
   email: string;
@@ -27,6 +28,41 @@ function getCategoryClass(category: RegistrationData['category']) {
   return category === 'conference'
     ? 'border-purple-200 bg-purple-100 text-purple-800'
     : 'border-blue-200 bg-blue-100 text-blue-800';
+}
+
+const displayedSummaryFields = new Set([
+  'id',
+  'name',
+  'email',
+  'phone',
+  'category',
+  'registrationDate',
+  'slotDetails',
+]);
+
+function formatFieldLabel(field: string) {
+  return field
+    .replace(/^_id$/, 'Mongo ID')
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function formatFieldValue(value: unknown) {
+  if (value === null || value === undefined || value === '') {
+    return 'Not provided';
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function getModelFields(row: RegistrationData) {
+  return Object.entries(row).filter(
+    ([field]) => !displayedSummaryFields.has(field)
+  );
 }
 
 function CategoryBadge({
@@ -190,7 +226,7 @@ export default function AdminDashboard() {
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">
-                Amnatram
+                mnatram
               </p>
               <p className="mt-1 text-2xl font-bold text-blue-900 sm:text-3xl">
                 {registrationCounts.amnatram}
@@ -325,6 +361,24 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     </div>
+
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                        All model fields
+                      </p>
+                      <dl className="mt-3 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+                        {getModelFields(row).map(([field, value]) => (
+                          <div key={field} className="min-w-0">
+                            <dt className="text-xs font-medium text-gray-500">
+                              {formatFieldLabel(field)}
+                            </dt>
+                            <dd className="mt-0.5 break-words text-sm text-gray-800">
+                              {formatFieldValue(value)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -377,10 +431,8 @@ export default function AdminDashboard() {
 
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredData.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="transition-colors hover:bg-gray-50"
-                      >
+                      <React.Fragment key={row.id}>
+                        <tr className="transition-colors hover:bg-gray-50">
                         <td className="max-w-40 px-4 py-4 align-top text-sm font-bold text-gray-900 lg:px-6">
                           <span className="block break-all">
                             {row.id}
@@ -424,7 +476,27 @@ export default function AdminDashboard() {
                             {row.registrationDate || 'Not available'}
                           </span>
                         </td>
-                      </tr>
+                        </tr>
+                        <tr className="bg-gray-50/60">
+                          <td colSpan={6} className="px-4 py-4 lg:px-6">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                              All model fields
+                            </p>
+                            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
+                              {getModelFields(row).map(([field, value]) => (
+                                <div key={field} className="min-w-0">
+                                  <dt className="text-xs font-medium text-gray-500">
+                                    {formatFieldLabel(field)}
+                                  </dt>
+                                  <dd className="mt-0.5 break-words text-sm text-gray-800">
+                                    {formatFieldValue(value)}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

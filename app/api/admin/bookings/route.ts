@@ -1,48 +1,51 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { ConferenceBooking } from '@/models/ConferenceBooking';
-import { MantramBooking } from '@/models/MantramBooking'; // Assuming this exists
+import { MantramBooking } from '@/models/MantramBooking';
 
-export const dynamic = 'force-dynamic'; // Prevents Next.js from caching this route statically
+export const dynamic = 'force-dynamic';
+
+function serializeBooking(booking: Record<string, unknown>, category: 'conference' | 'amnatram') {
+  const mongoId = booking._id ? String(booking._id) : '';
+  const createdAt = booking.createdAt
+    ? new Date(String(booking.createdAt)).toLocaleDateString()
+    : 'N/A';
+  const slotDetails = `${String(booking.slotDate || '')} | ${String(booking.slotTime || '')}`;
+
+  return {
+    ...booking,
+    _id: mongoId,
+    id: String(booking.sequentialId || mongoId.slice(-6)),
+    name: String(booking.fullName || ''),
+    email: String(booking.email || ''),
+    phone: category === 'conference'
+      ? `${String(booking.countryCode || '')} ${String(booking.mobileNumber || '')}`.trim()
+      : String(booking.mobileNumber || ''),
+    category,
+    registrationDate: createdAt,
+    slotDetails,
+  };
+}
 
 export async function GET() {
   try {
     await connectToDatabase();
 
-    // Fetch from both collections
     const conferenceBookings = await ConferenceBooking.find({}).sort({ createdAt: -1 }).lean();
-    
-    let mantramBookings: any[] = [];
+
+    let mantramBookings: Record<string, unknown>[] = [];
     try {
-      mantramBookings = await MantramBooking.find({}).sort({ createdAt: -1 }).lean();
-    } catch (e) {
-      console.warn("Mantram collection might not exist yet.");
+      mantramBookings = (await MantramBooking.find({}).sort({ createdAt: -1 }).lean()) as Record<string, unknown>[];
+    } catch {
+      console.warn('Mantram collection might not exist yet.');
     }
 
-    // Standardize Conference Data
-    const formattedConference = conferenceBookings.map((b: any) => ({
-      id: b.sequentialId || b._id.toString().slice(-6), // Fallback ID if sequentialId is missing
-      name: b.fullName,
-      email: b.email,
-      phone: `${b.countryCode || ''} ${b.mobileNumber}`.trim(),
-      category: 'conference',
-      registrationDate: b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A',
-      slotDetails: `${b.slotDate} | ${b.slotTime}`
-    }));
-
-    // Standardize Mantram Data
-    const formattedMantram = mantramBookings.map((b: any) => ({
-      id: b.sequentialId || b._id.toString().slice(-6),
-      name: b.fullName,
-      email: b.email,
-      phone: b.mobileNumber,
-      category: 'amnatram',
-      registrationDate: b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A',
-      slotDetails: `${b.slotDate} | ${b.slotTime}`
-    }));
-
-    // Combine and send
-    const allBookings = [...formattedConference, ...formattedMantram];
+    const allBookings = [
+      ...conferenceBookings.map((booking) =>
+        serializeBooking(booking as unknown as Record<string, unknown>, 'conference')
+      ),
+      ...mantramBookings.map((booking) => serializeBooking(booking, 'amnatram')),
+    ];
 
     return NextResponse.json({ data: allBookings }, { status: 200 });
   } catch (error: any) {
