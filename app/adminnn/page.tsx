@@ -21,7 +21,7 @@ interface AdminBookingsResponse {
 }
 
 function getCategoryLabel(category: RegistrationData['category']) {
-  return category === 'conference' ? 'Conference' : 'Amnatram';
+  return category === 'conference' ? 'Conference' : 'Mantram';
 }
 
 function getCategoryClass(category: RegistrationData['category']) {
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
         <header className="mb-6 flex flex-col gap-5 sm:mb-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-blue-600">
-              Administration
+             (SSI MAYA)
             </p>
 
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                 All Registrations ({registrationCounts.all})
               </option>
               <option value="amnatram">
-                Amnatram ({registrationCounts.amnatram})
+                Mantram ({registrationCounts.amnatram})
               </option>
               <option value="conference">
                 Conference ({registrationCounts.conference})
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">
-                mnatram
+                Mantram
               </p>
               <p className="mt-1 text-2xl font-bold text-blue-900 sm:text-3xl">
                 {registrationCounts.amnatram}
