@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 type CategoryType = 'all' | 'amnatram' | 'conference';
 
 interface RegistrationData {
+  [key: string]: unknown;
   id: string;
   name: string;
   email: string;
@@ -27,6 +28,55 @@ function getCategoryClass(category: RegistrationData['category']) {
   return category === 'conference'
     ? 'border-purple-200 bg-purple-100 text-purple-800'
     : 'border-blue-200 bg-blue-100 text-blue-800';
+}
+
+const displayedSummaryFields = new Set([
+  'id',
+  'name',
+  'email',
+  'phone',
+  'category',
+  'registrationDate',
+  'slotDetails',
+]);
+
+function formatFieldLabel(field: string) {
+  return field
+    .replace(/^_id$/, 'Mongo ID')
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function formatFieldValue(value: unknown) {
+  if (value === null || value === undefined || value === '') {
+    return 'Not provided';
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function getConferenceLabel(value: unknown) {
+  const conferenceName = formatFieldValue(value);
+
+  if (conferenceName.toLowerCase().includes('oncology')) {
+    return 'Oncology';
+  }
+
+  if (conferenceName.toLowerCase().includes('hyderabad')) {
+    return 'Hyderabad';
+  }
+
+  return conferenceName;
+}
+
+function getModelFields(row: RegistrationData) {
+  return Object.entries(row).filter(
+    ([field]) => !displayedSummaryFields.has(field)
+  );
 }
 
 function CategoryBadge({
@@ -190,7 +240,7 @@ export default function AdminDashboard() {
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">
-                Amnatram
+                mnatram
               </p>
               <p className="mt-1 text-2xl font-bold text-blue-900 sm:text-3xl">
                 {registrationCounts.amnatram}
@@ -271,6 +321,17 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-4 p-4">
+                    {row.category === 'conference' && (
+                      <div className="rounded-lg border border-purple-100 bg-purple-50 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-purple-700">
+                          Selected Conference
+                        </p>
+                        <p className="mt-1 break-words text-sm font-bold text-purple-900">
+                          {getConferenceLabel(row.conferenceName)}
+                        </p>
+                      </div>
+                    )}
+
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                         Name
@@ -325,6 +386,24 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     </div>
+
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                        All model fields
+                      </p>
+                      <dl className="mt-3 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+                        {getModelFields(row).map(([field, value]) => (
+                          <div key={field} className="min-w-0">
+                            <dt className="text-xs font-medium text-gray-500">
+                              {formatFieldLabel(field)}
+                            </dt>
+                            <dd className="mt-0.5 break-words text-sm text-gray-800">
+                              {formatFieldValue(value)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -333,7 +412,7 @@ export default function AdminDashboard() {
             {/* Desktop table layout */}
             <section className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
               <div className="max-w-full overflow-x-auto">
-                <table className="w-full min-w-[1000px] table-auto divide-y divide-gray-200">
+                <table className="w-full min-w-[1150px] table-auto divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th
@@ -364,6 +443,12 @@ export default function AdminDashboard() {
                         scope="col"
                         className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 lg:px-6"
                       >
+                        Selected Conference
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 lg:px-6"
+                      >
                         Booked Slot
                       </th>
                       <th
@@ -377,10 +462,8 @@ export default function AdminDashboard() {
 
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredData.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="transition-colors hover:bg-gray-50"
-                      >
+                      <React.Fragment key={row.id}>
+                        <tr className="transition-colors hover:bg-gray-50">
                         <td className="max-w-40 px-4 py-4 align-top text-sm font-bold text-gray-900 lg:px-6">
                           <span className="block break-all">
                             {row.id}
@@ -413,6 +496,14 @@ export default function AdminDashboard() {
                           <CategoryBadge category={row.category} />
                         </td>
 
+                        <td className="max-w-56 px-4 py-4 align-top text-sm font-medium text-purple-800 lg:px-6">
+                          <span className="block break-words">
+                            {row.category === 'conference'
+                              ? getConferenceLabel(row.conferenceName)
+                              : 'Not applicable'}
+                          </span>
+                        </td>
+
                         <td className="max-w-52 px-4 py-4 align-top text-sm font-medium text-emerald-700 lg:px-6">
                           <span className="block break-words">
                             {row.slotDetails || 'Not assigned'}
@@ -424,7 +515,27 @@ export default function AdminDashboard() {
                             {row.registrationDate || 'Not available'}
                           </span>
                         </td>
-                      </tr>
+                        </tr>
+                        <tr className="bg-gray-50/60">
+                          <td colSpan={7} className="px-4 py-4 lg:px-6">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                              All model fields
+                            </p>
+                            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
+                              {getModelFields(row).map(([field, value]) => (
+                                <div key={field} className="min-w-0">
+                                  <dt className="text-xs font-medium text-gray-500">
+                                    {formatFieldLabel(field)}
+                                  </dt>
+                                  <dd className="mt-0.5 break-words text-sm text-gray-800">
+                                    {formatFieldValue(value)}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
