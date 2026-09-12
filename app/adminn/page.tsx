@@ -59,6 +59,20 @@ function formatFieldValue(value: unknown) {
   return String(value);
 }
 
+function getConferenceLabel(value: unknown) {
+  const conferenceName = formatFieldValue(value);
+
+  if (conferenceName.toLowerCase().includes('oncology')) {
+    return 'Oncology';
+  }
+
+  if (conferenceName.toLowerCase().includes('hyderabad')) {
+    return 'Hyderabad';
+  }
+
+  return conferenceName;
+}
+
 function getModelFields(row: RegistrationData) {
   return Object.entries(row).filter(
     ([field]) => !displayedSummaryFields.has(field)
@@ -313,7 +327,7 @@ export default function AdminDashboard() {
                           Selected Conference
                         </p>
                         <p className="mt-1 break-words text-sm font-bold text-purple-900">
-                          {formatFieldValue(row.conferenceName)}
+                          {getConferenceLabel(row.conferenceName)}
                         </p>
                       </div>
                     )}
@@ -485,7 +499,7 @@ export default function AdminDashboard() {
                         <td className="max-w-56 px-4 py-4 align-top text-sm font-medium text-purple-800 lg:px-6">
                           <span className="block break-words">
                             {row.category === 'conference'
-                              ? formatFieldValue(row.conferenceName)
+                              ? getConferenceLabel(row.conferenceName)
                               : 'Not applicable'}
                           </span>
                         </td>
