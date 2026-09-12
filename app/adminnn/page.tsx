@@ -183,7 +183,7 @@ export default function AdminDashboard() {
         <header className="mb-6 flex flex-col gap-5 sm:mb-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-blue-600">
-             (SSI MAYA)
+              (SSI MAYA)
             </p>
 
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
@@ -191,7 +191,6 @@ export default function AdminDashboard() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-              Manage all system registrations in one place.
             </p>
           </div>
 
