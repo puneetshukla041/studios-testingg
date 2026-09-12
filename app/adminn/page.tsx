@@ -307,6 +307,17 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-4 p-4">
+                    {row.category === 'conference' && (
+                      <div className="rounded-lg border border-purple-100 bg-purple-50 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-purple-700">
+                          Selected Conference
+                        </p>
+                        <p className="mt-1 break-words text-sm font-bold text-purple-900">
+                          {formatFieldValue(row.conferenceName)}
+                        </p>
+                      </div>
+                    )}
+
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                         Name
@@ -387,7 +398,7 @@ export default function AdminDashboard() {
             {/* Desktop table layout */}
             <section className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
               <div className="max-w-full overflow-x-auto">
-                <table className="w-full min-w-[1000px] table-auto divide-y divide-gray-200">
+                <table className="w-full min-w-[1150px] table-auto divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th
@@ -413,6 +424,12 @@ export default function AdminDashboard() {
                         className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 lg:px-6"
                       >
                         Category
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 lg:px-6"
+                      >
+                        Selected Conference
                       </th>
                       <th
                         scope="col"
@@ -465,6 +482,14 @@ export default function AdminDashboard() {
                           <CategoryBadge category={row.category} />
                         </td>
 
+                        <td className="max-w-56 px-4 py-4 align-top text-sm font-medium text-purple-800 lg:px-6">
+                          <span className="block break-words">
+                            {row.category === 'conference'
+                              ? formatFieldValue(row.conferenceName)
+                              : 'Not applicable'}
+                          </span>
+                        </td>
+
                         <td className="max-w-52 px-4 py-4 align-top text-sm font-medium text-emerald-700 lg:px-6">
                           <span className="block break-words">
                             {row.slotDetails || 'Not assigned'}
@@ -478,7 +503,7 @@ export default function AdminDashboard() {
                         </td>
                         </tr>
                         <tr className="bg-gray-50/60">
-                          <td colSpan={6} className="px-4 py-4 lg:px-6">
+                          <td colSpan={7} className="px-4 py-4 lg:px-6">
                             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                               All model fields
                             </p>

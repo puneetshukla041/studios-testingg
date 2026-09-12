@@ -48,8 +48,13 @@ export async function GET() {
     ];
 
     return NextResponse.json({ data: allBookings }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Admin Fetch Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Internal Server Error',
+      },
+      { status: 500 }
+    );
   }
 }
